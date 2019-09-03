@@ -1,0 +1,141 @@
+/*
+ * Copyright (c) 2019 Connexta, LLC
+ *
+ * Released under the GNU Lesser General Public License version 3; see
+ * https://www.gnu.org/licenses/lgpl-3.0.html
+ */
+/* Build Script */
+import org.gradle.internal.jvm.Jvm
+
+buildscript {
+    repositories {
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+}
+
+plugins {
+    id "com.diffplug.gradle.spotless" version "3.24.2"
+    id "java"
+    id "com.palantir.docker" version "0.22.1"
+    id "maven"
+    id "org.owasp.dependencycheck" version "5.2.1"
+    id "org.springframework.boot" version "2.1.7.RELEASE"
+    id "org.sonarqube" version "2.7.1"
+}
+
+group = "com.connexta.security"
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "https://artifacts.codice.org/content/repositories/ion-releases/" }
+}
+
+dependencies {
+    annotationProcessor "org.projectlombok:lombok:1.18.8"
+    compileOnly "org.projectlombok:lombok:1.18.8"
+    implementation "com.connexta.security:security-markings-api-rest-spring-stubs:0.1.0-SNAPSHOT"
+    implementation "com.connexta.transformation:transformation-api-rest-spring-stubs:0.1.2"
+    implementation "commons-io:commons-io:2.6"
+    implementation "javax.inject:javax.inject:1"
+    implementation "io.springfox:springfox-swagger2:2.9.2"
+    implementation "io.springfox:springfox-swagger-ui:2.9.2"
+    implementation "org.springframework.boot:spring-boot-starter-actuator:2.1.7.RELEASE"
+    implementation "org.springframework.boot:spring-boot-starter-web:2.1.7.RELEASE"
+    testCompile "org.junit.jupiter:junit-jupiter-params:5.5.1"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.5.1"
+    testImplementation "org.mockito:mockito-core:3.0.0"
+    testImplementation("org.springframework.boot:spring-boot-starter-test:2.1.7.RELEASE") {
+        exclude group: "junit", module: "junit" // excludes JUnit 4
+    }
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.5.1"
+}
+
+sourceCompatibility = 1.11
+targetCompatibility = 1.11
+
+if (sourceCompatibility != Jvm.current().javaVersion) {
+    throw new Exception("You need Java ${sourceCompatibility} to build and run ${project.name}.\n" +
+            "The current version installed is ${Jvm.current().javaVersion.majorVersion}.\n" +
+            "For further reading see: \n\t> " +
+            "https://github.com/connexta/ion-security-markings#prerequisites")
+}
+
+test {
+    useJUnitPlatform()
+}
+
+spotless {
+    File licenseFile = rootProject.file("license.java")
+    format "misc", SpotlessConfig.getMisc()
+    java SpotlessConfig.getJava(licenseFile)
+    groovyGradle SpotlessConfig.getGroovy(licenseFile)
+}
+
+ext.configArgs = [
+        "parallel"  : project.hasProperty("parallel"),
+        "skipITests": project.hasProperty("skipITests"),
+]
+
+configurations.all {
+    resolutionStrategy {
+        force "com.fasterxml.jackson.core:jackson-databind:[2.9.9.3,)"
+        force "com.google.guava:guava:[24.1.1,)"
+    }
+}
+
+dependencyCheck {
+    failBuildOnCVSS = 4
+    failOnError = true
+
+    analyzers {
+        ossIndexEnabled = false
+    }
+
+    // Add support for NVD mirror
+    if (project.hasProperty("dependencyCheckUrlModified") && project.hasProperty("dependencyCheckUrlBase")) {
+        println "Using NVD Mirrors: ${dependencyCheckUrlBase} and ${dependencyCheckUrlModified}"
+        cve {
+            urlModified = "${dependencyCheckUrlModified}"
+            urlBase = "${dependencyCheckUrlBase}"
+        }
+    }
+
+    suppressionFile = "${projectDir}/owasp-suppressions.xml"
+}
+
+processResources {
+    expand([transformApiVersion: "0.1.0"])
+}
+
+bootJar {
+    launchScript()
+}
+
+docker {
+    files tasks.bootJar.outputs
+    name "cnxta/ion-security-markings"
+    buildArgs([JAR_FILE: "${tasks.bootJar.outputs.files.singleFile.name}"])
+}
+
+tasks.withType(Test) {
+    //  Forces Gradle to always run the tests, regardless if they are up to date or not.
+    outputs.upToDateWhen { false }
+
+    if (project.configArgs["skipITests"]) {
+        exclude "**/*ITests*"
+    }
+}
+
+tasks.withType(Test, TestLogger.configs(project.configArgs))
+
+task listDependencies(type: DependencyReportTask)
+
+task deploy(type: Exec) {
+    dependsOn build
+    commandLine "./deploy.bash"
+}
+
+assemble.finalizedBy("docker")
+build.finalizedBy("docker")
+bootRun.dependsOn(build)

@@ -1,0 +1,193 @@
+/*
+ * Copyright (c) 2019 Connexta, LLC
+ *
+ * Released under the GNU Lesser General Public License version 3; see
+ * https://www.gnu.org/licenses/lgpl-3.0.html
+ */
+/* Build Script */
+import org.gradle.internal.jvm.Jvm
+
+buildscript {
+    // define the plugin repository
+    repositories {
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    // define properties
+    apply from: "${rootDir}/properties.gradle"
+}
+
+// plugins to be used by the project
+plugins {
+    id "java"
+    id "maven"
+    id "maven-publish"
+    id "com.diffplug.gradle.spotless" version "${spotlessVersion}"
+    id "com.palantir.docker" version "${palantirDockerVersion}"
+    id "org.owasp.dependencycheck" version "${owaspVersion}"
+    id "org.springframework.boot" version "${springBootVersion}"
+    id "org.sonarqube" version "${sonarqubeVersion}"
+    id "nu.studer.credentials" version "${studerCredentialsVersion}"
+}
+
+// java version check
+if (javaVersion != Jvm.current().javaVersion.majorVersion) {
+    throw new Exception("You need Java ${javaVersion} to build and run ${project.name}.\n" +
+            "The current version installed is ${Jvm.current().javaVersion.majorVersion}.\n" +
+            "For further reading see: \n\t> " +
+            "https://github.com/connexta/ion-security-markings#prerequisites")
+}
+
+sourceCompatibility = javaVersion
+targetCompatibility = javaVersion
+
+// specify groupId and version
+// artifactId is defaulted to the projects/subprojects name, i.e. security-markings-api-rest-specs
+group = projectGroupId
+version = projectVersion
+
+/* The credentials object is created/populated by the gradle-credentials-plugin. See README for more information. */
+String di2eUsername = credentials.di2eUsername
+String di2ePassword = credentials.di2ePassword
+
+// maven repositories
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "https://artifacts.codice.org/content/repositories/ion-releases/" }
+    maven {
+        url "https://nexus.di2e.net/nexus/content/groups/public/"
+        credentials {
+            username "${di2eUsername}"
+            password "${di2ePassword}"
+        }
+    }
+}
+
+// maven publishing plugin configuration
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+
+            from(components.java)
+        }
+    }
+}
+assemble.finalizedBy tasks.publishToMavenLocal
+
+dependencies {
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    compile "org.projectlombok:lombok:${lombokVersion}"
+    implementation "com.connexta.security:security-markings-api-rest-models:${apiVersion}"
+    implementation "com.connexta.security:security-markings-api-rest-servers-spring:${apiVersion}"
+    implementation "io.springfox:springfox-swagger2:${swaggerVersion}"
+    implementation "io.springfox:springfox-swagger-ui:${swaggerVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-actuator:${springBootVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+    implementation "jblocks:jblocks-dataheaders:${jblocksVersion}"
+
+    // test dependencies
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testCompile "org.junit.jupiter:junit-jupiter-params:${junitVersion}"
+    testImplementation("org.springframework.boot:spring-boot-starter-test:${springBootVersion}") {
+        exclude group: "junit", module: "junit" // excludes JUnit 4
+    }
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+}
+
+// dependency resolution
+configurations.all {
+    resolutionStrategy {
+        force "com.fasterxml.jackson.core:jackson-databind:[${jacksonDatabindVersion},)"
+        force "com.google.guava:guava:[${guavaVersion},)"
+        force "org.springframework:spring-context:[${springVersion},)"
+        force "org.springframework:spring-aop:[${springVersion},)"
+        force "org.springframework:spring-beans:[${springVersion},)"
+        force "org.springframework:spring-expression:[${springVersion},)"
+        force "org.springframework:spring-core:[${springVersion},)"
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+// test configuration
+test {
+    useJUnitPlatform()
+}
+
+tasks.withType(Test, TestLogger.configs(project.configArgs))
+
+tasks.withType(Test) {
+    //  forces gradle to always run the tests, regardless if they are up to date or not
+    outputs.upToDateWhen { false }
+
+    if (project.configArgs["skipITests"]) {
+        exclude "**/*ITests*"
+    }
+}
+
+// spotless plugin configuration
+spotless {
+    File poundLicense = rootProject.file("license-pound.txt")
+    File javaLicense = rootProject.file("license-java.txt")
+
+    format "markdown", SpotlessConfig.getMarkdown(poundLicense)
+    java SpotlessConfig.getJava(javaLicense)
+    groovyGradle SpotlessConfig.getGroovy(javaLicense)
+}
+compileJava.dependsOn tasks.spotlessCheck
+
+// owasp plugin configuration
+dependencyCheck {
+    failBuildOnCVSS = 4
+    failOnError = true
+
+    analyzers {
+        ossIndexEnabled = false
+    }
+
+    // add support for NVD mirror
+    if (project.hasProperty("dependencyCheckUrlModified") && project.hasProperty("dependencyCheckUrlBase")) {
+        println "Using NVD Mirrors: ${dependencyCheckUrlBase} and ${dependencyCheckUrlModified}"
+        cve {
+            urlModified = "${dependencyCheckUrlModified}"
+            urlBase = "${dependencyCheckUrlBase}"
+        }
+    }
+
+    suppressionFile = "${rootDir}/owasp-suppressions.xml"
+}
+
+// spring boot plugin configuration
+springBoot {
+    mainClassName = "com.connexta.security.markings.SecurityMarkingsApplication"
+}
+
+bootJar {
+    launchScript()
+}
+bootRun.dependsOn(build)
+
+// docker plugin configuration
+docker {
+    files tasks.bootJar.outputs
+    name "cnxta/ion-security-markings"
+    buildArgs([JAR_FILE: "${tasks.bootJar.outputs.files.singleFile.name}"])
+}
+build.finalizedBy tasks.docker
+
+// other tasks
+
+task deploy(type: Exec) {
+    dependsOn build
+    commandLine "./deploy.bash"
+}
+
+task listDependencies(type: DependencyReportTask)

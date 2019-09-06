@@ -6,16 +6,10 @@
  */
 package com.connexta.security.markings.service.api;
 
-import com.connexta.security.markings.exceptions.SecurityMarkingsException;
-import com.connexta.security.markings.rest.models.SecurityMarking;
-import com.connexta.security.markings.rest.models.SecurityMarkingsWithOverwrites;
-import java.util.List;
+import com.connexta.security.markings.rest.models.SecurityMarkings;
 
 /** Provides clients with a way to ingest Products for processing and storage */
 public interface SecurityMarkingsService {
 
-  List<SecurityMarking> systemMarkings() throws SecurityMarkingsException;
-
-  void validate(SecurityMarkingsWithOverwrites securityMarkingsWithOverwrites)
-      throws SecurityMarkingsException;
+  void validate(SecurityMarkings securityMarkings);
 }

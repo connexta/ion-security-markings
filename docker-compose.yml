@@ -14,15 +14,6 @@ services:
     deploy:
       restart_policy:
         condition: any
-    configs:
-      - source: transform_config
-        target: /configs/transform_config.yml
-    command:
-      - "--spring.config.additional-location=file:/configs/transform_config.yml"
 networks:
-  cdr:
+  transform:
     external: true
-
-configs:
-  transform_config:
-    file: ./configs/transform_config.yml

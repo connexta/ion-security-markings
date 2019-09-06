@@ -11,6 +11,22 @@
 This repository uses [Lombok](https://projectlombok.org/), which requires additional configurations and plugins to work in IntelliJ / Eclipse.
 Follow the instructions [here](https://www.baeldung.com/lombok-ide) to set up your IDE.
 
+## Gradle Credentials
+This repository pulls artifacts from the DI2E nexus.
+As such, it needs DI2E credentials: username and password in this case.
+This project uses the `gradle-credentials-plugin` to encrypt given DI2E credentials for use in gradle.
+
+> **NOTE:** Ensure that `GRADLE_USER_HOME` is set to `~/.gradle` in order for the `gradle-credentials-plugin` to operate properly.
+
+The following two commands should be ran to store DI2E credentials in the `~/.gradle/gradle.encrypted.properties`.
+```
+./gradlew addCredentials --key di2eUsername --value {username}
+./gradlew addCredentials --key di2ePassword --value {password}
+```
+where:
+- `{username}` is the DI2E username
+- `{password}` is the DI2E password
+
 ## Building
 To just compile and build the projects:
 ```bash
@@ -58,13 +74,7 @@ For more information about spotless checks see
     The properties in these files will be merged with any properties that you have configured in the service.
     The properties in the external config files take precedence over config files that are built with the service.
 
-    Example configs/transform_config.yml:
-    ```yaml
-    endpointUrl:
-      transform: http://localhost:9090/transform/
-    ```
-
-2. A Docker network named `cdr` is needed to run via docker-compose.
+2. A Docker network named `transform` is needed to run via docker-compose.
 
     Determine if the network already exists:
     ```bash
@@ -73,7 +83,7 @@ For more information about spotless checks see
     If the network exists, the output includes a reference to it:
     ```bash
     NETWORK ID          NAME                DRIVER              SCOPE
-    zk0kg1knhd6g        cdr                 overlay             swarm
+    zk0kg1knhd6g        transform           overlay             swarm
     ```
     If the network has not been created:
     ```bash

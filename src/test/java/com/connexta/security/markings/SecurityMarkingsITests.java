@@ -6,155 +6,345 @@
  */
 package com.connexta.security.markings;
 
-import javax.inject.Inject;
-import javax.inject.Named;
-import org.junit.jupiter.api.AfterEach;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import com.connexta.security.markings.data.InvalidIsm;
+import com.connexta.security.markings.data.MediaType;
+import com.connexta.security.markings.data.ValidIsm;
+import com.connexta.security.markings.rest.models.ISM;
+import com.connexta.security.markings.rest.models.SecurityMarkings;
+import java.net.URI;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.client.RestTemplate;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest
+@SpringBootTest(
+    classes = SecurityMarkingsApplication.class,
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@AutoConfigureMockMvc
+@Slf4j
 public class SecurityMarkingsITests {
+  private static final String DEFAULT_ACCEPT_VERSION = "0.1.0-SNAPSHOT";
+  private static final String DEFAULT_MEDIA_TYPE = MediaType.JSON_UTF_8.getValue();
 
-  private static final byte[] TEST_FILE = "some-content".getBytes();
+  private static final HttpHeaders DEFAULT_HEADERS = new HttpHeaders();
+  private static final ISM DEFAULT_ISM = ValidIsm.SECRET_FOUO.getIsm();
+  private static final SecurityMarkings DEFAULT_SECURITY_MARKINGS = new SecurityMarkings();
 
-  @Value("${endpointUrl.store}")
-  private String endpointUrlStore;
+  @LocalServerPort private int port;
+  private URI validateUri;
+  private TestRestTemplate restTemplate = new TestRestTemplate();
+  private HttpHeaders headers = new HttpHeaders();
+  private SecurityMarkings securityMarkings = new SecurityMarkings();
 
-  @Value("${endpointUrl.transform}")
-  private String endpointUrlTransform;
+  @BeforeAll
+  public static void setupClass() {
+    DEFAULT_SECURITY_MARKINGS.setISM(DEFAULT_ISM);
 
-  @Value("${endpoints.transform.version}")
-  private String endpointsTransformVersion;
-
-  @Inject private MockMvc mvc;
-  @Inject private RestTemplate restTemplate;
-
-  @Inject
-  @Named("nonBufferingRestTemplate")
-  private RestTemplate nonBufferingRestTemplate;
-
-  private MockRestServiceServer storeServer;
-  private MockRestServiceServer transformServer;
+    DEFAULT_HEADERS.add("Accept-Version", DEFAULT_ACCEPT_VERSION);
+    DEFAULT_HEADERS.add("Content-Type", DEFAULT_MEDIA_TYPE);
+  }
 
   @BeforeEach
-  public void beforeEach() {
-    storeServer = MockRestServiceServer.createServer(nonBufferingRestTemplate);
-    transformServer = MockRestServiceServer.createServer(restTemplate);
+  public void setup() throws Exception {
+    validateUri = new URI("http://localhost:" + port + "/validation/validate");
   }
 
-  @AfterEach
-  public void afterEach() {
-    storeServer.verify();
-    storeServer.reset();
-    transformServer.verify();
-    transformServer.reset();
+  // Media Type tests
+  @Test
+  public void testValidateGivenNoMediaType() {
+    headers.add("Accept-Version", DEFAULT_ACCEPT_VERSION);
+
+    // omitting body because of a "cannot convert body into content type" error
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(headers, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, response.getStatusCode());
   }
 
-  //  @Test
-  //  public void testContextLoads() {}
-  //
-  //  @Test
-  //  public void testSuccessfulIngestRequest() throws Exception {
-  //    final String location = "http://localhost:1232/store/1234";
-  //    storeServer
-  //        .expect(requestTo(endpointUrlStore))
-  //        .andExpect(method(HttpMethod.POST))
-  //        .andRespond(withCreatedEntity(new URI(location)));
-  //
-  //    transformServer
-  //        .expect(requestTo(endpointUrlTransform))
-  //        .andExpect(method(HttpMethod.POST))
-  //        .andExpect(header("Accept-Version", endpointsTransformVersion))
-  //        .andExpect(jsonPath("$.location").value(location))
-  //        .andRespond(
-  //            withStatus(HttpStatus.ACCEPTED)
-  //                .contentType(MediaType.APPLICATION_JSON)
-  //                .body(
-  //                    new JSONObject()
-  //                        .put("id", "asdf")
-  //                        .put("message", "The ID asdf has been accepted")
-  //                        .toString()));
-  //
-  //    mvc.perform(
-  //            multipart("/ingest")
-  //                .file("file", TEST_FILE)
-  //                .param("correlationId", "000f4e4a")
-  //                .header("Accept-Version", "1.2.1")
-  //                .accept(MediaType.APPLICATION_JSON)
-  //                .contentType(MediaType.MULTIPART_FORM_DATA))
-  //        .andExpect(status().isAccepted());
-  //  }
-  //
-  //  /* START store request tests */
-  //
-  //  @ParameterizedTest
-  //  @EnumSource(
-  //      value = HttpStatus.class,
-  //      names = {
-  //        "BAD_REQUEST",
-  //        "UNAUTHORIZED",
-  //        "FORBIDDEN",
-  //        "NOT_IMPLEMENTED",
-  //        "INTERNAL_SERVER_ERROR"
-  //      })
-  //  public void testStoreRequests(HttpStatus status) throws Exception {
-  //    storeServer
-  //        .expect(requestTo(endpointUrlStore))
-  //        .andExpect(method(HttpMethod.POST))
-  //        .andRespond(withStatus(status));
-  //
-  //    transformServer.expect(never(), requestTo(endpointUrlTransform));
-  //
-  //    mvc.perform(
-  //            multipart("/ingest")
-  //                .file("file", TEST_FILE)
-  //                .param("correlationId", "000f4e4a")
-  //                .header("Accept-Version", "1.2.1")
-  //                .accept(MediaType.APPLICATION_JSON)
-  //                .contentType(MediaType.MULTIPART_FORM_DATA))
-  //        .andExpect(status().isInternalServerError());
-  //  }
-  //
-  //  /* END store request tests */
-  //
-  //  /* START transform request tests */
-  //
-  //  // The error handler throws the same exception for all non-202 status codes returned by the
-  //  // transformation endpoint.
-  //  @Test
-  //  public void testUnsuccessfulTransformRequest() throws Exception {
-  //    final String location = "http://localhost:1232/store/1234";
-  //    storeServer
-  //        .expect(requestTo(endpointUrlStore))
-  //        .andExpect(method(HttpMethod.POST))
-  //        .andRespond(withCreatedEntity(new URI(location)));
-  //
-  //    transformServer
-  //        .expect(requestTo(endpointUrlTransform))
-  //        .andExpect(method(HttpMethod.POST))
-  //        .andExpect(header("Accept-Version", endpointsTransformVersion))
-  //        .andExpect(jsonPath("$.location").value(location))
-  //        .andRespond(withServerError());
-  //
-  //    mvc.perform(
-  //            multipart("/ingest")
-  //                .file("file", TEST_FILE)
-  //                .param("correlationId", "000f4e4a")
-  //                .header("Accept-Version", "1.2.1")
-  //                .accept(MediaType.APPLICATION_JSON)
-  //                .contentType(MediaType.MULTIPART_FORM_DATA))
-  //        .andExpect(status().isInternalServerError());
-  //  }
-  /* END transform request tests */
+  @ParameterizedTest
+  @NullAndEmptySource
+  public void testValidateGivenNullAndEmptyMediaType(String mediaType) {
+    headers.add("Accept-Version", DEFAULT_ACCEPT_VERSION);
+    headers.add("Content-Type", mediaType);
+
+    // omitting body because of a "cannot convert body into content type" error
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(headers, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, response.getStatusCode());
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = MediaType.class,
+      names = {
+        "JSON_UTF_8",
+        "ANY_TYPE",
+        "ANY_TEXT_TYPE",
+        "ANY_IMAGE_TYPE",
+        "ANY_AUDIO_TYPE",
+        "ANY_VIDEO_TYPE",
+        "ANY_APPLICATION_TYPE"
+      },
+      mode = EnumSource.Mode.EXCLUDE)
+  public void testValidateGivenInvalidMediaType(MediaType mediaType) {
+    headers.add("Accept-Version", DEFAULT_ACCEPT_VERSION);
+    headers.add("Content-Type", mediaType.getValue());
+
+    // omitting body because of a "cannot convert body into content type" error
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(headers, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, response.getStatusCode());
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = MediaType.class,
+      names = {"JSON_UTF_8"},
+      mode = EnumSource.Mode.INCLUDE)
+  public void testValidateGivenValidMediaType(MediaType mediaType) {
+    headers.add("Accept-Version", DEFAULT_ACCEPT_VERSION);
+    headers.add("Content-Type", mediaType.getValue());
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+  }
+
+  // Accept Version tests
+  @Test
+  public void testValidateGivenNoAcceptVersion() {
+    headers.add("Content-Type", DEFAULT_MEDIA_TYPE);
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
+
+  @Disabled("Disabled until strict Accept-Versioning is implemented.")
+  @ParameterizedTest
+  @NullAndEmptySource
+  public void testValidateGivenNullAndEmptyAcceptVersion(String acceptVersion) {
+    headers.add("Accept-Version", acceptVersion);
+    headers.add("Content-Type", DEFAULT_MEDIA_TYPE);
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"0.1.1", "0.2.0-SNAPSHOT", "1.0.0-SNAPSHOT"})
+  public void testValidateGivenInvalidAcceptVersion(String acceptVersion) {
+    headers.add("Accept-Version", acceptVersion);
+    headers.add("Content-Type", DEFAULT_MEDIA_TYPE);
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"0.0.0-SNAPSHOT", DEFAULT_ACCEPT_VERSION})
+  public void testValidateGivenValidAcceptVersion(String acceptVersion) {
+    headers.add("Accept-Version", acceptVersion);
+    headers.add("Content-Type", DEFAULT_MEDIA_TYPE);
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+  }
+
+  // security markings tests
+  @Test
+  public void testValidateGivenNullSecurityMarkings() {
+    securityMarkings = null;
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
+
+  @Test
+  public void testValidateGivenEmptySecurityMarkings() {
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
+
+  // security markings with ism tests
+  @Test
+  public void testValidateGivenSecurityMarkingsWithNullIsm() {
+    securityMarkings.setISM(null);
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
+
+  @Test
+  public void testValidateGivenSecurityMarkingsWithEmptyIsm() {
+    securityMarkings.setISM(new ISM());
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = ValidIsm.class,
+      names = {
+        "SECRET_NOFORN_ORCON",
+        "TOP_SECRET",
+        "TOP_SECRET_FOUO",
+        "TOP_SECRET_RELTO",
+        "TOP_SECRET_DISPLAYONLYTO",
+        "TOP_SECRET_RELTO_DISPLAYONLYTO",
+        "TOP_SECRET_NOFORN_ORCON",
+        "JOINT_SECRET",
+        "JOINT_SECRET_FOUO",
+        "JOINT_SECRET_DISPLAYONLYTO",
+        "JOINT_SECRET_RELTO_DISPLAYONLYTO",
+      },
+      mode = EnumSource.Mode.EXCLUDE)
+  public void testValidateGivenSecurityMarkingsWithValidIsmCoveredBySystemHigh(ValidIsm validIsm) {
+    log.info("Valid ISM: {}.", validIsm.getIsm());
+
+    securityMarkings.setISM(validIsm.getIsm());
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = ValidIsm.class,
+      names = {
+        "SECRET_NOFORN_ORCON",
+        "TOP_SECRET",
+        "TOP_SECRET_FOUO",
+        "TOP_SECRET_RELTO",
+        "TOP_SECRET_DISPLAYONLYTO",
+        "TOP_SECRET_RELTO_DISPLAYONLYTO",
+        "TOP_SECRET_NOFORN_ORCON",
+        "JOINT_SECRET",
+        "JOINT_SECRET_FOUO",
+        "JOINT_SECRET_DISPLAYONLYTO",
+        "JOINT_SECRET_RELTO_DISPLAYONLYTO"
+      },
+      mode = EnumSource.Mode.INCLUDE)
+  public void testValidateGivenSecurityMarkingsWithValidIsmNotCoveredBySystemHigh(
+      ValidIsm validIsm) {
+    log.info("Valid ISM: {}.", validIsm.getIsm());
+
+    securityMarkings.setISM(validIsm.getIsm());
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    log.info("Response status code: {}.", response.getStatusCode());
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+  }
+
+  @ParameterizedTest
+  @EnumSource(InvalidIsm.class)
+  public void testValidateGivenSecurityMarkingsWithInvalidIsm(InvalidIsm invalidIsm) {
+    log.info("ISM: {}.", invalidIsm.name());
+
+    securityMarkings.setISM(invalidIsm.getIsm());
+
+    RequestEntity<SecurityMarkings> request =
+        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+
+    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+  }
 }

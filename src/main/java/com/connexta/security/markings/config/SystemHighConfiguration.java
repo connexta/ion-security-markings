@@ -6,14 +6,12 @@
  */
 package com.connexta.security.markings.config;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 
-@Slf4j
 @Configuration
 @PropertySource("classpath:system-high-markings.properties")
 public class SystemHighConfiguration {

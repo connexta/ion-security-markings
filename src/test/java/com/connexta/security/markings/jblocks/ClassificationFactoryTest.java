@@ -43,7 +43,7 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(JBlocksTestConfiguration.class)
 @Slf4j
 public class ClassificationFactoryTest {
-  private static final String SYSTEM_HIGH_BANNER = ValidBanner.SECRET_FOUO.getBanner();
+  private static final String SYSTEM_HIGH_BANNER = ValidBanner.SECRET.getBanner();
   private static final String DEFAULT_BANNER = ValidBanner.SECRET.getBanner();
   private static final ISM DEFAULT_ISM = ValidIsm.SECRET.getIsm();
 

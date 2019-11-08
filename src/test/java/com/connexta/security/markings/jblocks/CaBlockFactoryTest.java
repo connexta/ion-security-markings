@@ -76,15 +76,13 @@ public class CaBlockFactoryTest {
 
   @Test
   public void testCreateGivenIsmWithRelevantFields() {
-    ISM ism = ValidIsm.SECRET_CABLOCK.getIsm();
+    ISM ism = ValidIsm.CABLOCK.getIsm();
 
     when(builderMock.build()).thenReturn(caBlockTestInstance);
 
     CaBlockFactory caBlockFactory =
         new CaBlockFactoryWithCustomBuilder(markingsDefinitionTestInstance, builderMock);
 
-    // throws a null pointer becuase the builderMock.build() returns null by default, and we can't
-    // mock a CaBlock
     Optional<CaBlock> caBlockOptional = caBlockFactory.create(ism);
     assertTrue(caBlockOptional.isPresent());
     CaBlock caBlock = caBlockOptional.get();

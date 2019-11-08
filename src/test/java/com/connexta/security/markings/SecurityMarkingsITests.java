@@ -46,7 +46,7 @@ public class SecurityMarkingsITests {
   private static final String DEFAULT_MEDIA_TYPE = MediaType.JSON_UTF_8.getValue();
 
   private static final HttpHeaders DEFAULT_HEADERS = new HttpHeaders();
-  private static final ISM DEFAULT_ISM = ValidIsm.SECRET_FOUO.getIsm();
+  private static final ISM DEFAULT_ISM = ValidIsm.SECRET.getIsm();
   private static final SecurityMarkings DEFAULT_SECURITY_MARKINGS = new SecurityMarkings();
 
   @LocalServerPort private int port;
@@ -163,23 +163,7 @@ public class SecurityMarkingsITests {
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
   }
 
-  @Disabled("Disabled until strict Accept-Versioning is implemented.")
-  @ParameterizedTest
-  @NullAndEmptySource
-  public void testValidateGivenNullAndEmptyAcceptVersion(String acceptVersion) {
-    headers.add("Accept-Version", acceptVersion);
-    headers.add("Content-Type", DEFAULT_MEDIA_TYPE);
-
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
-
-    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
-
-    log.info("Response status code: {}.", response.getStatusCode());
-
-    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-  }
-
+  @Disabled("Disabled until strict Accept-Version validation is implemented")
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"0.1.1", "0.2.0-SNAPSHOT", "1.0.0-SNAPSHOT"})
@@ -272,17 +256,10 @@ public class SecurityMarkingsITests {
   @EnumSource(
       value = ValidIsm.class,
       names = {
-        "SECRET_NOFORN_ORCON",
         "TOP_SECRET",
-        "TOP_SECRET_FOUO",
-        "TOP_SECRET_RELTO",
-        "TOP_SECRET_DISPLAYONLYTO",
-        "TOP_SECRET_RELTO_DISPLAYONLYTO",
-        "TOP_SECRET_NOFORN_ORCON",
+        "TOP_SECRET_LETTER",
         "JOINT_SECRET",
-        "JOINT_SECRET_FOUO",
-        "JOINT_SECRET_DISPLAYONLYTO",
-        "JOINT_SECRET_RELTO_DISPLAYONLYTO",
+        "JOINT_SECRET_LETTER",
       },
       mode = EnumSource.Mode.EXCLUDE)
   public void testValidateGivenSecurityMarkingsWithValidIsmCoveredBySystemHigh(ValidIsm validIsm) {
@@ -304,17 +281,10 @@ public class SecurityMarkingsITests {
   @EnumSource(
       value = ValidIsm.class,
       names = {
-        "SECRET_NOFORN_ORCON",
         "TOP_SECRET",
-        "TOP_SECRET_FOUO",
-        "TOP_SECRET_RELTO",
-        "TOP_SECRET_DISPLAYONLYTO",
-        "TOP_SECRET_RELTO_DISPLAYONLYTO",
-        "TOP_SECRET_NOFORN_ORCON",
+        "TOP_SECRET_LETTER",
         "JOINT_SECRET",
-        "JOINT_SECRET_FOUO",
-        "JOINT_SECRET_DISPLAYONLYTO",
-        "JOINT_SECRET_RELTO_DISPLAYONLYTO"
+        "JOINT_SECRET_LETTER",
       },
       mode = EnumSource.Mode.INCLUDE)
   public void testValidateGivenSecurityMarkingsWithValidIsmNotCoveredBySystemHigh(

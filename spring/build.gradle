@@ -1,0 +1,45 @@
+/*
+ * Copyright (c) 2019 Connexta, LLC
+ *
+ * Released under the GNU Lesser General Public License version 3; see
+ * https://www.gnu.org/licenses/lgpl-3.0.html
+ */
+/* Build Script */
+
+plugins {
+    id "org.springframework.boot" version "${springBootVersion}"
+    id "com.palantir.docker" version "${palantirDockerVersion}"
+}
+
+dependencies {
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    compile "org.projectlombok:lombok:${lombokVersion}"
+    implementation project(":security-markings-util")
+    implementation project(":security-markings-jblocks")
+    implementation "com.connexta.security:security-markings-api-rest-servers-spring:${apiVersion}"
+    implementation "io.springfox:springfox-swagger2:${swaggerVersion}"
+    implementation "io.springfox:springfox-swagger-ui:${swaggerVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-actuator:${springBootVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+    implementation "jblocks:jblocks-dataheaders:${jblocksVersion}"
+    testImplementation project(":security-markings-test-resources")
+}
+
+// spring boot plugin configuration
+springBoot {
+    mainClassName = "com.connexta.security.markings.spring.SecurityMarkingsApplication"
+}
+
+bootJar {
+    launchScript()
+}
+bootRun.dependsOn(build)
+
+// docker plugin configuration
+docker {
+    dockerfile file("docker/Dockerfile")
+    files tasks.bootJar.outputs
+    name "cnxta/ion-security-markings"
+    buildArgs([JAR_FILE: "${tasks.bootJar.outputs.files.singleFile.name}"])
+}
+build.finalizedBy tasks.docker

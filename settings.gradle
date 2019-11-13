@@ -6,3 +6,11 @@
  */
 /* Build Script */
 rootProject.name = "security-markings"
+include(":security-markings-util")
+project(":security-markings-util").projectDir = file("util")
+include(":security-markings-jblocks")
+project(":security-markings-jblocks").projectDir = file("jblocks")
+include("security-markings-spring")
+project(":security-markings-spring").projectDir = file("spring")
+include(":security-markings-test-resources")
+project(":security-markings-test-resources").projectDir = file("test-resources")

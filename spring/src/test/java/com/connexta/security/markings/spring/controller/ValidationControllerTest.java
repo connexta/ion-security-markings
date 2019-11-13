@@ -6,31 +6,40 @@
  */
 package com.connexta.security.markings.spring.controller;
 
+import com.connexta.security.markings.api.openapi.models.ISM;
+import com.connexta.security.markings.spring.exceptions.DetailedResponseStatusException;
+import com.connexta.security.markings.spring.service.ValidationService;
+import com.connexta.security.markings.test.resources.data.ValidIsm;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.connexta.security.markings.api.rest.models.SecurityMarkings;
-import com.connexta.security.markings.spring.exceptions.DetailedResponseStatusException;
-import com.connexta.security.markings.spring.service.api.ValidationService;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-
 public class ValidationControllerTest {
   private static final String DEFAULT_ACCEPT_VERSION = "0.1.0-SNAPSHOT";
-  private static final SecurityMarkings DEFAULT_SECURITY_MARKINGS = new SecurityMarkings();
+  private static final ISM DEFAULT_ISM = ValidIsm.SECRET.getIsm();
 
+  private ValidationService serviceMock = mock(ValidationService.class);
+  private ValidationController validationController = new ValidationController(serviceMock);
   private DetailedResponseStatusException detailedResponseStatusExceptionMock =
       mock(DetailedResponseStatusException.class);
-  private ValidationService serviceMock = mock(ValidationService.class);
+
+  @Test
+  public void testConstructWithNullValidationService() {
+    ValidationService nullValidationService = null;
+
+    assertThrows(IllegalArgumentException.class, () -> new ValidationController(nullValidationService));
+  }
 
   @Test
   public void testValidate() {
-    ValidationController controller = new ValidationController(serviceMock);
     assertEquals(
         HttpStatus.NO_CONTENT,
-        controller.validate(DEFAULT_ACCEPT_VERSION, DEFAULT_SECURITY_MARKINGS).getStatusCode());
+        validationController.validate(DEFAULT_ACCEPT_VERSION, DEFAULT_ISM).getStatusCode());
   }
 
   @Test
@@ -39,12 +48,11 @@ public class ValidationControllerTest {
 
     doThrow(detailedResponseStatusExceptionMock)
         .when(serviceMock)
-        .validate(DEFAULT_SECURITY_MARKINGS);
+        .validate(DEFAULT_ISM);
 
-    ValidationController controller = new ValidationController(serviceMock);
     assertEquals(
         HttpStatus.BAD_REQUEST,
-        controller.validate(DEFAULT_ACCEPT_VERSION, DEFAULT_SECURITY_MARKINGS).getStatusCode());
+        validationController.validate(DEFAULT_ACCEPT_VERSION, DEFAULT_ISM).getStatusCode());
   }
 
   @Test
@@ -54,21 +62,19 @@ public class ValidationControllerTest {
 
     doThrow(detailedResponseStatusExceptionMock)
         .when(serviceMock)
-        .validate(DEFAULT_SECURITY_MARKINGS);
+        .validate(DEFAULT_ISM);
 
-    ValidationController controller = new ValidationController(serviceMock);
     assertEquals(
         HttpStatus.UNPROCESSABLE_ENTITY,
-        controller.validate(DEFAULT_ACCEPT_VERSION, DEFAULT_SECURITY_MARKINGS).getStatusCode());
+        validationController.validate(DEFAULT_ACCEPT_VERSION, DEFAULT_ISM).getStatusCode());
   }
 
   @Test
-  public void testValidateExpectingGeneralException() {
-    doThrow(RuntimeException.class).when(serviceMock).validate(DEFAULT_SECURITY_MARKINGS);
+  public void testValidateExpectingGeneralRuntimeException() {
+    doThrow(RuntimeException.class).when(serviceMock).validate(DEFAULT_ISM);
 
-    ValidationController controller = new ValidationController(serviceMock);
     assertEquals(
-        HttpStatus.UNPROCESSABLE_ENTITY,
-        controller.validate(DEFAULT_ACCEPT_VERSION, DEFAULT_SECURITY_MARKINGS).getStatusCode());
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        validationController.validate(DEFAULT_ACCEPT_VERSION, DEFAULT_ISM).getStatusCode());
   }
 }

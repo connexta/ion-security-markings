@@ -1,0 +1,16 @@
+/*
+ * Copyright (c) 2019 Connexta, LLC
+ *
+ * Released under the GNU Lesser General Public License version 3; see
+ * https://www.gnu.org/licenses/lgpl-3.0.html
+ */
+/* Build Script */
+
+dependencies {
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    compile "org.projectlombok:lombok:${lombokVersion}"
+    implementation project(":security-markings-util")
+    implementation "com.connexta.security:security-markings-api-openapi-models:${apiVersion}"
+    implementation "com.connexta.security:security-markings-api-util:${apiVersion}"
+    testImplementation project(":security-markings-test-resources")
+}

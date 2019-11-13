@@ -15,8 +15,11 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     compile "org.projectlombok:lombok:${lombokVersion}"
     implementation project(":security-markings-util")
-    implementation project(":security-markings-jblocks")
-    implementation "com.connexta.security:security-markings-api-rest-servers-spring:${apiVersion}"
+    implementation project(":security-markings-container")
+    implementation project(":security-markings-whitelist")
+    implementation "com.connexta.security:security-markings-api-openapi-models:${apiVersion}"
+    implementation "com.connexta.security:security-markings-api-openapi-servers-spring:${apiVersion}"
+    implementation "com.connexta.security:security-markings-api-util:${apiVersion}"
     implementation "io.springfox:springfox-swagger2:${swaggerVersion}"
     implementation "io.springfox:springfox-swagger-ui:${swaggerVersion}"
     implementation "org.springframework.boot:spring-boot-starter-actuator:${springBootVersion}"

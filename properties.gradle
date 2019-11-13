@@ -16,8 +16,8 @@ ext {
 
     //packages
     rootPackage = "com.connexta.security.markings"
-    restPackage = "${rootPackage}.rest"
-    restModelsPackage = "${restPackage}.models"
+    openapiPackage = "${rootPackage}.openapi"
+    openapiModelsPackage = "${openapiPackage}.models"
 
     // versions
     javaVersion = "11"

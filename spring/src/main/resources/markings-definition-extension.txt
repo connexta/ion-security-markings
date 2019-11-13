@@ -1,0 +1,4 @@
+# Synonyms
+synonym R = C
+synonym RESTRICTED = C
+synonym R E S T R I C T E D = C

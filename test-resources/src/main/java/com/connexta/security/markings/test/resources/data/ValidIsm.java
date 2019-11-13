@@ -6,27 +6,48 @@
  */
 package com.connexta.security.markings.test.resources.data;
 
-import com.connexta.security.markings.api.rest.models.ISM;
+import com.connexta.security.markings.api.openapi.models.ISM;
 
 public enum ValidIsm {
+  // classifications
   UNCLASSIFIED(
-      new ISM().classification("UNCLASSIFIED").ownerProducer("USA"), ValidBanner.UNCLASSIFIED),
-  UNCLASSIFIED_FOUO(
-      new ISM().classification("UNCLASSIFIED").ownerProducer("USA").disseminationControls("FOUO"),
-      ValidBanner.UNCLASSIFIED_FOUO),
-  UNCLASSIFIED_RELTO(
-      new ISM().classification("UNCLASSIFIED").ownerProducer("USA").releasableTo("USA, CAN, GBR"),
-      ValidBanner.UNCLASSIFIED_RELTO),
-  UNCLASSIFIED_DISPLAYONLYTO(
-      new ISM().classification("UNCLASSIFIED").ownerProducer("USA").displayOnlyTo("USA, CAN"),
-      ValidBanner.UNCLASSIFIED_DISPLAYONLYTO),
-  UNCLASSIFIED_RELTO_DISPLAYONLYTO(
+      new ISM().classification("UNCLASSIFIED").ownerProducer("USA"), "UNCLASSIFIED"),
+  UNCLASSIFIED_LETTER(
+      new ISM().classification("U").ownerProducer("USA"), "U"),
+
+  CONFIDENTIAL(
       new ISM()
-          .classification("UNCLASSIFIED")
+          .classification("CONFIDENTIAL")
           .ownerProducer("USA")
-          .releasableTo("USA, CAN, GBR")
-          .displayOnlyTo("USA, CAN"),
-      ValidBanner.UNCLASSIFIED_RELTO_DISPLAYONLYTO),
+          .declassDate("19991230")
+          .classifiedBy("Kernel Sanders")
+          .derivedFrom("x^2"),
+      "CONFIDENTIAL"),
+  CONFIDENTIAL_LETTER(
+      new ISM()
+          .classification("C")
+          .ownerProducer("USA")
+          .declassDate("19991230")
+          .classifiedBy("Kernel Sanders")
+          .derivedFrom("x^2"),
+      "C"),
+
+  RESTRICTED(
+      new ISM()
+          .classification("RESTRICTED")
+          .ownerProducer("USA")
+          .declassDate("19991230")
+          .classifiedBy("Kernel Sanders")
+          .derivedFrom("x^2"),
+      "RESTRICTED"),
+  RESTRICTED_LETTER(
+      new ISM()
+          .classification("R")
+          .ownerProducer("USA")
+          .declassDate("19991230")
+          .classifiedBy("Kernel Sanders")
+          .derivedFrom("x^2"),
+      "R"),
 
   SECRET(
       new ISM()
@@ -35,62 +56,15 @@ public enum ValidIsm {
           .declassDate("19991230")
           .classifiedBy("Kernel Sanders")
           .derivedFrom("x^2"),
-      ValidBanner.SECRET),
-  SECRET_CABLOCK(
+      "SECRET"),
+  SECRET_LETTER(
       new ISM()
-          .classification("SECRET")
-          .ownerProducer("USA")
-          .classificationReason("Important Stuff")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2")
-          .declassDate("19991230"),
-      ValidBanner.SECRET),
-  SECRET_FOUO(
-      new ISM()
-          .classification("SECRET")
+          .classification("S")
           .ownerProducer("USA")
           .declassDate("19991230")
-          .disseminationControls("FOUO")
           .classifiedBy("Kernel Sanders")
           .derivedFrom("x^2"),
-      ValidBanner.SECRET_FOUO),
-  SECRET_RELTO(
-      new ISM()
-          .classification("SECRET")
-          .ownerProducer("USA")
-          .declassDate("19991230")
-          .releasableTo("USA, CAN, GBR")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.SECRET_RELTO),
-  SECRET_DISPLAYONLYTO(
-      new ISM()
-          .classification("SECRET")
-          .ownerProducer("USA")
-          .declassDate("19991230")
-          .displayOnlyTo("USA, CAN")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.SECRET_DISPLAYONLYTO),
-  SECRET_RELTO_DISPLAYONLYTO(
-      new ISM()
-          .classification("SECRET")
-          .ownerProducer("USA")
-          .declassDate("19991230")
-          .releasableTo("USA, CAN, GBR")
-          .displayOnlyTo("USA, CAN")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.SECRET_RELTO_DISPLAYONLYTO),
-  SECRET_NOFORN_ORCON(
-      new ISM()
-          .classification("SECRET")
-          .ownerProducer("USA")
-          .declassDate("19991230")
-          .disseminationControls("NOFORN/ORCON")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.SECRET_NOFORN_ORCON),
+      "S"),
 
   TOP_SECRET(
       new ISM()
@@ -99,113 +73,72 @@ public enum ValidIsm {
           .declassDate("19991230")
           .classifiedBy("Kernel Sanders")
           .derivedFrom("x^2"),
-      ValidBanner.TOP_SECRET),
-  TOP_SECRET_FOUO(
+      "TOP SECRET"),
+  TOP_SECRET_LETTER(
       new ISM()
-          .classification("TOP SECRET")
+          .classification("TS")
           .ownerProducer("USA")
           .declassDate("19991230")
-          .disseminationControls("FOUO")
           .classifiedBy("Kernel Sanders")
           .derivedFrom("x^2"),
-      ValidBanner.TOP_SECRET_FOUO),
-  TOP_SECRET_RELTO(
-      new ISM()
-          .classification("TOP SECRET")
-          .ownerProducer("USA")
-          .declassDate("19991230")
-          .releasableTo("USA, CAN, GBR")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.TOP_SECRET_RELTO),
-  TOP_SECRET_DISPLAYONLYTO(
-      new ISM()
-          .classification("TOP SECRET")
-          .ownerProducer("USA")
-          .declassDate("19991230")
-          .displayOnlyTo("USA, CAN")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.TOP_SECRET_DISPLAYONLYTO),
-  TOP_SECRET_RELTO_DISPLAYONLYTO(
-      new ISM()
-          .classification("TOP SECRET")
-          .ownerProducer("USA")
-          .declassDate("19991230")
-          .releasableTo("USA, CAN, GBR")
-          .displayOnlyTo("USA, CAN")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.TOP_SECRET_RELTO_DISPLAYONLYTO),
-  TOP_SECRET_NOFORN_ORCON(
-      new ISM()
-          .classification("TOP SECRET")
-          .ownerProducer("USA")
-          .declassDate("19991230")
-          .disseminationControls("NOFORN/ORCON")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.TOP_SECRET_NOFORN_ORCON),
+      "TS"),
 
   JOINT_SECRET(
       new ISM()
           .classification("SECRET")
           .ownerProducer("USA, CAN")
           .releasableTo("USA, CAN")
-          .joint(true)
+          .joint("true")
           .declassDate("19991230")
           .classifiedBy("Kernel Sanders")
           .derivedFrom("x^2"),
-      ValidBanner.JOINT_SECRET),
-  JOINT_SECRET_FOUO(
+      "//JOINT SECRET USA, CAN//REL TO USA, CAN"),
+  JOINT_SECRET_LETTER(
       new ISM()
-          .classification("SECRET")
+          .classification("S")
           .ownerProducer("USA, CAN")
           .releasableTo("USA, CAN")
-          .joint(true)
+          .joint("true")
+          .declassDate("19991230")
+          .classifiedBy("Kernel Sanders")
+          .derivedFrom("x^2"),
+      "//JOINT S USA, CAN//REL TO USA, CAN"),
+
+  // dissemination controls
+  FOUO(
+      new ISM()
+          .classification("SECRET")
+          .ownerProducer("USA")
           .declassDate("19991230")
           .disseminationControls("FOUO")
           .classifiedBy("Kernel Sanders")
           .derivedFrom("x^2"),
-      ValidBanner.JOINT_SECRET_FOUO),
-  JOINT_SECRET_DISPLAYONLYTO(
+      "SECRET//FOUO"),
+
+  CABLOCK(
       new ISM()
           .classification("SECRET")
-          .ownerProducer("USA, CAN")
-          .releasableTo("USA, CAN")
-          .joint(true)
-          .declassDate("19991230")
-          .displayOnlyTo("USA, CAN")
+          .ownerProducer("USA")
+          .classificationReason("Important Stuff")
           .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.JOINT_SECRET_DISPLAYONLYTO),
-  JOINT_SECRET_RELTO_DISPLAYONLYTO(
-      new ISM()
-          .classification("SECRET")
-          .ownerProducer("USA, CAN")
-          .releasableTo("USA, CAN")
-          .joint(true)
-          .declassDate("19991230")
-          .releasableTo("USA, CAN, GBR")
-          .displayOnlyTo("USA, CAN")
-          .classifiedBy("Kernel Sanders")
-          .derivedFrom("x^2"),
-      ValidBanner.JOINT_SECRET_RELTO_DISPLAYONLYTO),
+          .derivedFrom("x^2")
+          .declassDate("19991230"),
+      "SECRET"),
   ;
 
   private ISM ism;
-  private ValidBanner validBanner;
+  private String banner;
 
-  ValidIsm(ISM ism, ValidBanner validBanner) {
+  ValidIsm(ISM ism, String banner) {
     this.ism = ism;
-    this.validBanner = validBanner;
+    this.banner = banner;
   }
 
   public ISM getIsm() {
     return ism;
   }
 
-  public ValidBanner getValidBanner() {
-    return validBanner;
+  public String getBanner() {
+    return banner;
   }
 }

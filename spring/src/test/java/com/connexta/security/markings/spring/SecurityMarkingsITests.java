@@ -8,11 +8,11 @@ package com.connexta.security.markings.spring;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.connexta.security.markings.api.rest.models.ISM;
-import com.connexta.security.markings.api.rest.models.SecurityMarkings;
+import com.connexta.security.markings.api.openapi.models.ISM;
+import com.connexta.security.markings.api.openapi.models.SecurityMarkings;
 import com.connexta.security.markings.test.resources.data.InvalidIsm;
-import com.connexta.security.markings.test.resources.data.ValidIsm;
 import com.connexta.security.markings.test.resources.data.MediaType;
+import com.connexta.security.markings.test.resources.data.ValidIsm;
 import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,32 +32,27 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(
     classes = SecurityMarkingsApplication.class,
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
 @Slf4j
 public class SecurityMarkingsITests {
   private static final String DEFAULT_ACCEPT_VERSION = "0.1.0-SNAPSHOT";
   private static final String DEFAULT_MEDIA_TYPE = MediaType.JSON_UTF_8.getValue();
 
   private static final HttpHeaders DEFAULT_HEADERS = new HttpHeaders();
-  private static final ISM DEFAULT_ISM = ValidIsm.SECRET_FOUO.getIsm();
-  private static final SecurityMarkings DEFAULT_SECURITY_MARKINGS = new SecurityMarkings();
+  private static final ISM DEFAULT_ISM = ValidIsm.SECRET.getIsm();
 
   @LocalServerPort private int port;
   private URI validateUri;
   private TestRestTemplate restTemplate = new TestRestTemplate();
   private HttpHeaders headers = new HttpHeaders();
-  private SecurityMarkings securityMarkings = new SecurityMarkings();
 
   @BeforeAll
   public static void setupClass() {
-    DEFAULT_SECURITY_MARKINGS.setISM(DEFAULT_ISM);
 
     DEFAULT_HEADERS.add("Accept-Version", DEFAULT_ACCEPT_VERSION);
     DEFAULT_HEADERS.add("Content-Type", DEFAULT_MEDIA_TYPE);
@@ -138,8 +133,8 @@ public class SecurityMarkingsITests {
     headers.add("Accept-Version", DEFAULT_ACCEPT_VERSION);
     headers.add("Content-Type", mediaType.getValue());
 
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
+    RequestEntity<ISM> request =
+        new RequestEntity<>(DEFAULT_ISM, headers, HttpMethod.POST, validateUri);
 
     ResponseEntity<String> response = restTemplate.exchange(request, String.class);
 
@@ -153,8 +148,8 @@ public class SecurityMarkingsITests {
   public void testValidateGivenNoAcceptVersion() {
     headers.add("Content-Type", DEFAULT_MEDIA_TYPE);
 
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
+    RequestEntity<ISM> request =
+        new RequestEntity<>(DEFAULT_ISM, headers, HttpMethod.POST, validateUri);
 
     ResponseEntity<String> response = restTemplate.exchange(request, String.class);
 
@@ -163,23 +158,7 @@ public class SecurityMarkingsITests {
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
   }
 
-  @Disabled("Disabled until strict Accept-Versioning is implemented.")
-  @ParameterizedTest
-  @NullAndEmptySource
-  public void testValidateGivenNullAndEmptyAcceptVersion(String acceptVersion) {
-    headers.add("Accept-Version", acceptVersion);
-    headers.add("Content-Type", DEFAULT_MEDIA_TYPE);
-
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
-
-    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
-
-    log.info("Response status code: {}.", response.getStatusCode());
-
-    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-  }
-
+  @Disabled("Disabled until strict Accept-Version validation is implemented")
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"0.1.1", "0.2.0-SNAPSHOT", "1.0.0-SNAPSHOT"})
@@ -187,8 +166,8 @@ public class SecurityMarkingsITests {
     headers.add("Accept-Version", acceptVersion);
     headers.add("Content-Type", DEFAULT_MEDIA_TYPE);
 
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
+    RequestEntity<ISM> request =
+        new RequestEntity<>(DEFAULT_ISM, headers, HttpMethod.POST, validateUri);
 
     ResponseEntity<String> response = restTemplate.exchange(request, String.class);
 
@@ -202,8 +181,8 @@ public class SecurityMarkingsITests {
     headers.add("Accept-Version", acceptVersion);
     headers.add("Content-Type", DEFAULT_MEDIA_TYPE);
 
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(DEFAULT_SECURITY_MARKINGS, headers, HttpMethod.POST, validateUri);
+    RequestEntity<ISM> request =
+        new RequestEntity<>(DEFAULT_ISM, headers, HttpMethod.POST, validateUri);
 
     ResponseEntity<String> response = restTemplate.exchange(request, String.class);
 
@@ -212,13 +191,12 @@ public class SecurityMarkingsITests {
     assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
   }
 
-  // security markings tests
   @Test
-  public void testValidateGivenNullSecurityMarkings() {
-    securityMarkings = null;
+  public void testValidateGivenNullIsm() {
+    ISM nullIsm = null;
 
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+    RequestEntity<ISM> request =
+        new RequestEntity<>(nullIsm, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
 
     ResponseEntity<String> response = restTemplate.exchange(request, String.class);
 
@@ -228,38 +206,11 @@ public class SecurityMarkingsITests {
   }
 
   @Test
-  public void testValidateGivenEmptySecurityMarkings() {
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
-
-    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
-
-    log.info("Response status code: {}.", response.getStatusCode());
-
-    assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
-  }
-
-  // security markings with ism tests
-  @Test
-  public void testValidateGivenSecurityMarkingsWithNullIsm() {
-    securityMarkings.setISM(null);
-
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
-
-    ResponseEntity<String> response = restTemplate.exchange(request, String.class);
-
-    log.info("Response status code: {}.", response.getStatusCode());
-
-    assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
-  }
-
-  @Test
   public void testValidateGivenSecurityMarkingsWithEmptyIsm() {
-    securityMarkings.setISM(new ISM());
+    ISM emptyIsm = new ISM();
 
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+    RequestEntity<ISM> request =
+        new RequestEntity<>(emptyIsm, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
 
     ResponseEntity<String> response = restTemplate.exchange(request, String.class);
 
@@ -272,26 +223,19 @@ public class SecurityMarkingsITests {
   @EnumSource(
       value = ValidIsm.class,
       names = {
-        "SECRET_NOFORN_ORCON",
         "TOP_SECRET",
-        "TOP_SECRET_FOUO",
-        "TOP_SECRET_RELTO",
-        "TOP_SECRET_DISPLAYONLYTO",
-        "TOP_SECRET_RELTO_DISPLAYONLYTO",
-        "TOP_SECRET_NOFORN_ORCON",
+        "TOP_SECRET_LETTER",
         "JOINT_SECRET",
-        "JOINT_SECRET_FOUO",
-        "JOINT_SECRET_DISPLAYONLYTO",
-        "JOINT_SECRET_RELTO_DISPLAYONLYTO",
+        "JOINT_SECRET_LETTER",
       },
       mode = EnumSource.Mode.EXCLUDE)
   public void testValidateGivenSecurityMarkingsWithValidIsmCoveredBySystemHigh(ValidIsm validIsm) {
-    log.info("Valid ISM: {}.", validIsm.getIsm());
+    log.info("Valid ISM: {}.", validIsm.name());
 
-    securityMarkings.setISM(validIsm.getIsm());
+    ISM ism = validIsm.getIsm();
 
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+    RequestEntity<ISM> request =
+        new RequestEntity<>(ism, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
 
     ResponseEntity<String> response = restTemplate.exchange(request, String.class);
 
@@ -304,27 +248,20 @@ public class SecurityMarkingsITests {
   @EnumSource(
       value = ValidIsm.class,
       names = {
-        "SECRET_NOFORN_ORCON",
         "TOP_SECRET",
-        "TOP_SECRET_FOUO",
-        "TOP_SECRET_RELTO",
-        "TOP_SECRET_DISPLAYONLYTO",
-        "TOP_SECRET_RELTO_DISPLAYONLYTO",
-        "TOP_SECRET_NOFORN_ORCON",
+        "TOP_SECRET_LETTER",
         "JOINT_SECRET",
-        "JOINT_SECRET_FOUO",
-        "JOINT_SECRET_DISPLAYONLYTO",
-        "JOINT_SECRET_RELTO_DISPLAYONLYTO"
+        "JOINT_SECRET_LETTER",
       },
       mode = EnumSource.Mode.INCLUDE)
   public void testValidateGivenSecurityMarkingsWithValidIsmNotCoveredBySystemHigh(
       ValidIsm validIsm) {
-    log.info("Valid ISM: {}.", validIsm.getIsm());
+    log.info("Valid ISM: {}.", validIsm.name());
 
-    securityMarkings.setISM(validIsm.getIsm());
+    ISM ism = validIsm.getIsm();
 
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+    RequestEntity<ISM> request =
+        new RequestEntity<>(ism, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
 
     ResponseEntity<String> response = restTemplate.exchange(request, String.class);
 
@@ -336,12 +273,12 @@ public class SecurityMarkingsITests {
   @ParameterizedTest
   @EnumSource(value = InvalidIsm.class)
   public void testValidateGivenSecurityMarkingsWithInvalidIsm(InvalidIsm invalidIsm) {
-    log.info("ISM: {}.", invalidIsm.name());
+    log.info("Valid ISM: {}.", invalidIsm.name());
 
-    securityMarkings.setISM(invalidIsm.getIsm());
+    ISM ism = invalidIsm.getIsm();
 
-    RequestEntity<SecurityMarkings> request =
-        new RequestEntity<>(securityMarkings, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
+    RequestEntity<ISM> request =
+        new RequestEntity<>(ism, DEFAULT_HEADERS, HttpMethod.POST, validateUri);
 
     ResponseEntity<String> response = restTemplate.exchange(request, String.class);
 
